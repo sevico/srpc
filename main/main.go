@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net"
 	"srpc"
@@ -9,15 +8,15 @@ import (
 	"time"
 )
 
-func startServer(addr chan string){
-	l,err:=net.Listen("tcp",":0")
-	if err!=nil{
-		log.Fatal("network error:", err)
-	}
-	log.Println("start rpc server on", l.Addr())
-	addr <- l.Addr().String()
-	srpc.Accept(l)
-}
+//func startServer(addr chan string){
+//	l,err:=net.Listen("tcp",":0")
+//	if err!=nil{
+//		log.Fatal("network error:", err)
+//	}
+//	log.Println("start rpc server on", l.Addr())
+//	addr <- l.Addr().String()
+//	srpc.Accept(l)
+//}
 //func main() {
 //	addr:=make(chan string)
 //	go startServer(addr)
@@ -44,6 +43,34 @@ func startServer(addr chan string){
 //
 //}
 
+type Foo int
+type Args struct {
+	Num1,Num2 int
+}
+
+func (f Foo) Sum(args Args, reply *int) error {
+	*reply = args.Num1+args.Num2
+	return nil
+}
+
+func startServer(addr chan string){
+	var foo Foo
+	if err:=srpc.Register(&foo);err!=nil{
+		log.Fatal("register error:", err)
+	}
+
+	l,err:=net.Listen("tcp",":0")
+	if err!=nil{
+		log.Fatal("network error:", err)
+	}
+
+	log.Println("start rpc server on", l.Addr())
+	addr <- l.Addr().String()
+	srpc.Accept(l)
+}
+
+
+
 func main() {
 	log.SetFlags(0)
 	addr:=make(chan string)
@@ -57,12 +84,13 @@ func main() {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
-			args:=fmt.Sprintf("srpc req %d",i)
-			reply:=""
+			//args:=fmt.Sprintf("srpc req %d",i)
+			args:=&Args{Num1: i,Num2: i+1}
+			reply:=0
 			if err:=client.Call("Foo.Sum",args,&reply);err!=nil{
 				log.Fatal("call Foo.Sum error:", err)
 			}
-			log.Println("reply:", reply)
+			log.Printf("%d + %d = %d", args.Num1, args.Num2, reply)
 		}(i)
 	}
 	wg.Wait()
