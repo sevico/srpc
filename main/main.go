@@ -1,8 +1,10 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net"
+	"net/http"
 	"srpc"
 	"sync"
 	"time"
@@ -59,39 +61,46 @@ func startServer(addr chan string){
 		log.Fatal("register error:", err)
 	}
 
-	l,err:=net.Listen("tcp",":0")
+	l,err:=net.Listen("tcp",":9999")
 	if err!=nil{
 		log.Fatal("network error:", err)
 	}
 
 	log.Println("start rpc server on", l.Addr())
+	srpc.HandleHTTP()
 	addr <- l.Addr().String()
-	srpc.Accept(l)
+	_ = http.Serve(l,nil)
+
+	//addr <- l.Addr().String()
+	//srpc.Accept(l)
 }
 
-
-
-func main() {
-	log.SetFlags(0)
-	addr:=make(chan string)
-	go startServer(addr)
-	client,_:=srpc.Dial("tcp",<-addr)
+func call(addrCh chan string){
+	client, _ := srpc.DialHTTP("tcp", <-addrCh)
+	defer func() { _ = client.Close() }()
 
 	time.Sleep(time.Second)
-	wg:=sync.WaitGroup{}
-
+	// send request & receive response
+	var wg sync.WaitGroup
 	for i := 0; i < 5; i++ {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
-			//args:=fmt.Sprintf("srpc req %d",i)
-			args:=&Args{Num1: i,Num2: i+1}
-			reply:=0
-			if err:=client.Call("Foo.Sum",args,&reply);err!=nil{
+			args := &Args{Num1: i, Num2: i * i}
+			var reply int
+			if err := client.Call(context.Background(), "Foo.Sum", args, &reply); err != nil {
 				log.Fatal("call Foo.Sum error:", err)
 			}
 			log.Printf("%d + %d = %d", args.Num1, args.Num2, reply)
 		}(i)
 	}
 	wg.Wait()
+
+}
+
+func main() {
+	log.SetFlags(0)
+	addr:=make(chan string)
+	go call(addr)
+	startServer(addr)
 }
