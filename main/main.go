@@ -183,5 +183,5 @@ func main() {
 	//broadcast(addr1, addr2)
 
 	call(addr1, addr2)
-	//broadcast(addr1, addr2)
+	broadcast(addr1, addr2)
 }
