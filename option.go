@@ -9,12 +9,12 @@ const MagicNumber = 0x3beef
 type Option struct{
 	MagicNumber int
 	CodecType codec.Type
-	ConnectionTimeout time.Duration
+	ConnectTimeout time.Duration
 	HandleTimeout time.Duration
 }
 
 var DefaultOption = &Option{
 	MagicNumber: MagicNumber,
 	CodecType: codec.GobType,
-	ConnectionTimeout: time.Second * 10,
+	ConnectTimeout: time.Second * 10,
 }
