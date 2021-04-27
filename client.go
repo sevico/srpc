@@ -120,6 +120,19 @@ func (client *Client) receive() {
 		}
 
 	}
+	// error occurs, so terminateCalls pending calls
+	client.terminateCalls(err)
+}
+func (client *Client) terminateCalls(err error) {
+	client.sending.Lock()
+	defer client.sending.Unlock()
+	client.mu.Lock()
+	defer client.mu.Unlock()
+	client.shutdown = true
+	for _, call := range client.pending {
+		call.Error = err
+		call.done()
+	}
 }
 
 func NewClient(conn net.Conn,opt *Option) (*Client,error){
@@ -309,4 +322,10 @@ func XDial(rpcAddr string,opts ...*Option) (*Client,error){
 		// tcp, unix or other transport protocol
 		return Dial(protocol, addr, opts...)
 	}
+}
+
+func (client *Client) IsAvailable() bool{
+	client.mu.Lock()
+	defer client.mu.Unlock()
+	return !client.shutdown && client.closing
 }

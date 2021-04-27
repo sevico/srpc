@@ -114,7 +114,6 @@ func (server *Server) serveCodec(cc codec.Codec,opt *Option) {
 			continue
 		}
 		wg.Add(1)
-
 		go server.handleRequest(cc, req, sending, wg,opt.HandleTimeout)
 	}
 	wg.Wait()
@@ -199,8 +198,8 @@ func (server *Server) handleRequest(cc codec.Codec,req *request,sending *sync.Mu
 	case <-time.After(timeout):
 		req.h.Error = fmt.Sprintf("rpc server: request handle timeout: expect within %s", timeout)
 		server.sendResponse(cc, req.h, invalidRequest, sending)
-		case <-called:
-			<-sent
+	case <-called:
+		<-sent
 	}
 	//err:=req.svc.call(req.mtype,req.argV,req.replyV)
 	//if err!=nil{
